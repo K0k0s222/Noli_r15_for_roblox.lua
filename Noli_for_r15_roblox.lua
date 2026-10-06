@@ -1,6 +1,7 @@
 -- ============================================
---  OBSERVANT GUI — v115
+--  OBSERVANT GUI — v116
 --  Save только по кнопке SAVE POSITIONS
+--  + Chase Theme ON/OFF (1.4x)
 -- ============================================
 
 if _G.NoliTPTool then pcall(function() _G.NoliTPTool:Destroy() end) end
@@ -118,6 +119,11 @@ local BAR_COLOR_FILL   = Color3.fromRGB(255, 255, 255)
 local BAR_COLOR_HIT    = Color3.fromRGB(70, 220, 110)
 local BAR_COLOR_CRASH  = Color3.fromRGB(220, 60, 60)
 local BAR_FADE_TIME    = 0.5
+
+-- 🎵 CHASE THEME
+local CHASE_SOUND_ID = "rbxassetid://127672367782566"
+local CHASE_SPEED    = 1.4
+local CHASE_VOLUME   = 2
 
 -- 📝 ТЕКСТЫ
 local TEXTS_CHARGE = {
@@ -1614,6 +1620,86 @@ lockStroke.Thickness = 1.5
 lockStroke.Transparency = 0.3
 
 -- ============================================
+--  🎵 CHASE THEME (ON/OFF)
+-- ============================================
+local chaseEnabled = false
+local chaseSound = nil
+
+local ChaseBtn = Instance.new("TextButton")
+ChaseBtn.Size = UDim2.new(0, sc(64), 0, sc(64))
+ChaseBtn.Position = UDim2.new(1, -sc(150), 1, -sc(380))
+ChaseBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+ChaseBtn.Text = "🎵"
+ChaseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChaseBtn.Font = Enum.Font.GothamBlack
+ChaseBtn.TextSize = sc(28)
+ChaseBtn.BorderSizePixel = 0
+ChaseBtn.AutoButtonColor = false
+ChaseBtn.Parent = PunchGui
+Instance.new("UICorner", ChaseBtn).CornerRadius = UDim.new(1, 0)
+local chaseStroke = Instance.new("UIStroke", ChaseBtn)
+chaseStroke.Color = Color3.fromRGB(160, 160, 255)
+chaseStroke.Thickness = 2
+chaseStroke.Transparency = 0.2
+
+local ChaseLbl = Instance.new("TextLabel", PunchGui)
+ChaseLbl.Size = UDim2.new(0, sc(64), 0, sc(12))
+ChaseLbl.Position = UDim2.new(1, -sc(150), 1, -sc(312))
+ChaseLbl.BackgroundTransparency = 1
+ChaseLbl.Text = "THEME"
+ChaseLbl.TextColor3 = C.text
+ChaseLbl.Font = Enum.Font.GothamBold
+ChaseLbl.TextSize = sc(9)
+
+-- Контейнер для звука (в CoreGui, чтобы не удалялся при респавне)
+local SoundFolder = Instance.new("Folder")
+SoundFolder.Name = "ObservantSoundFolder"
+SoundFolder.Parent = CoreGui
+_G.ObservantSoundFolder = SoundFolder
+
+local function stopChaseTheme()
+    if chaseSound then
+        pcall(function() chaseSound:Stop() end)
+        pcall(function() chaseSound:Destroy() end)
+        chaseSound = nil
+    end
+end
+
+local function startChaseTheme()
+    stopChaseTheme()
+    local s = Instance.new("Sound")
+    s.Name = "ChaseTheme"
+    s.SoundId = CHASE_SOUND_ID
+    s.Looped = true
+    s.Volume = CHASE_VOLUME
+    s.PlaybackSpeed = CHASE_SPEED
+    s.Parent = SoundFolder
+    chaseSound = s
+    pcall(function() s:Play() end)
+end
+
+local function applyChaseState()
+    if chaseEnabled then
+        ChaseBtn.BackgroundColor3 = Color3.fromRGB(120, 90, 220)
+        chaseStroke.Color = Color3.fromRGB(200, 180, 255)
+        ChaseLbl.Text = "THEME ON"
+        ChaseLbl.TextColor3 = C.accent2
+        startChaseTheme()
+    else
+        ChaseBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+        chaseStroke.Color = Color3.fromRGB(160, 160, 255)
+        ChaseLbl.Text = "THEME"
+        ChaseLbl.TextColor3 = C.text
+        stopChaseTheme()
+    end
+end
+
+ChaseBtn.MouseButton1Click:Connect(function()
+    chaseEnabled = not chaseEnabled
+    applyChaseState()
+end)
+
+-- ============================================
 --  🎯 DRAG
 -- ============================================
 local draggableItems = {
@@ -1621,6 +1707,7 @@ local draggableItems = {
     {btn = RunBtn,   lbl = RunLbl},
     {btn = PunchBtn, lbl = PunchLbl},
     {btn = LockBtn,  lbl = nil},
+    {btn = ChaseBtn, lbl = ChaseLbl},
 }
 
 local dragData = nil
@@ -2458,6 +2545,12 @@ LP.CharacterAdded:Connect(function(char)
     clearText()
     ChargeGui.Enabled = false
     stopStarRotation()
+
+    -- перезапуск chase theme после респавна
+    if chaseEnabled then
+        startChaseTheme()
+    end
+
     task.wait(0.5)
     setMode("none")
 end)
@@ -2483,6 +2576,8 @@ task.spawn(function()
     saveTargets.PunchBtn = PunchBtn
     saveTargets.PunchLbl = PunchLbl
     saveTargets.LockBtn = LockBtn
+    saveTargets.ChaseBtn = ChaseBtn
+    saveTargets.ChaseLbl = ChaseLbl
 
     -- подгружаем сохранённые позиции
     doLoad()
@@ -2490,4 +2585,4 @@ task.spawn(function()
     setMode("none")
 end)
 
-print("[Observant GUI v115] save только по кнопке SAVE POSITIONS.")
+print("[Observant GUI v116] + Chase Theme (1.4x) | Save только по кнопке SAVE POSITIONS.")
